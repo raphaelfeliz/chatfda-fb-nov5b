@@ -37,12 +37,12 @@ This document provides a concise overview of the major files and directories in 
 - **`use-mobile.tsx`**: A custom hook to detect if the user is on a mobile device.
 - **`use-toast.ts`**: A custom hook for displaying toast notifications.
 
-### `src/lib`
+### `src/lib` OK
 
-- **`triage.ts`**: Contains the core `TriageMachine` class, which is a state machine that manages the product configuration logic.
-- **`utils.ts`**: A collection of utility functions used throughout the application.
-- **`whatsapp.ts`**: Functions related to WhatsApp integration.
-- **`placeholder-images.ts`**: Exports data for placeholder images used in the UI.
+- **`triage.ts`**: Contains the core `TriageMachine` class, which is a state machine that manages the product configuration logic. OK
+- **`utils.ts`**: A collection of utility functions used throughout the application. OK
+- **`whatsapp.ts`**: Functions related to WhatsApp integration. OK
+- **`placeholder-images.ts`**: Exports data for placeholder images used in the UI. OK
 
 ### `src/ai`
 

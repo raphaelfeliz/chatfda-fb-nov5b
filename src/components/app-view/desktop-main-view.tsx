@@ -1,5 +1,5 @@
-import { Configurator } from '@/components/configurator';
-import { ChatPanel } from '@/components/chat-panel';
+import { Configurator } from '@/components/configurator/configurator';
+import { ChatPanel } from '@/components/chat/chat-panel';
 
 export function DesktopMainView() {
     return (

@@ -1,4 +1,4 @@
-import { Button } from "./ui/button";
+import { Button } from "../global/button";
 import { RefreshCw, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 

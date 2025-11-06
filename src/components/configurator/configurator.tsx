@@ -3,7 +3,7 @@
 import { useTriage } from "@/hooks/use-triage";
 import { OptionCard } from "./option-card";
 import { SkuDisplay } from "./sku-display";
-import { ProgressTracker } from "./progress-tracker";
+import { ProgressTracker } from "../header/progress-tracker";
 
 export function Configurator() {
   const { currentState, sku, history, selectOption, reset, finalProduct, fullProductName } =

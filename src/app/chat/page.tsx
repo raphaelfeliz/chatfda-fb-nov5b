@@ -1,5 +1,5 @@
-import { ChatTab } from '@/components/chat-tab';
-import { DesktopMainView } from '@/components/desktop-main-view';
+import { ChatTab } from '@/components/chat/chat-tab';
+import { DesktopMainView } from '@/components/app-view/desktop-main-view';
 
 export default function ChatPage() {
   return (

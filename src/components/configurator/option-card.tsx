@@ -1,6 +1,6 @@
 import type { Option } from "@/lib/triage";
 import Image from "next/image";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/chat/card";
 import { cn } from "@/lib/utils";
 
 type OptionCardProps = {

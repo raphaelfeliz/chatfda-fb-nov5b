@@ -6,8 +6,8 @@ import {
   Card,
   CardContent,
   CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@/components/chat/card";
+import { Button } from "@/components/global/button";
 import { MessageSquare } from "lucide-react";
 import type { Option } from "@/lib/triage";
 import { generateWhatsAppLink } from "@/lib/whatsapp";

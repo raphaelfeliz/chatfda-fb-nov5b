@@ -1,7 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
-import { AppHeader } from '@/components/app-header';
+import { Toaster } from "@/components/global/toaster";
+import { AppHeader } from '@/components/header/app-header';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',

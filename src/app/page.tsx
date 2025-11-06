@@ -1,5 +1,5 @@
-import { ConfiguratorTab } from '@/components/configurator-tab';
-import { DesktopMainView } from '@/components/desktop-main-view';
+import { ConfiguratorTab } from '@/components/configurator/configurator-tab';
+import { DesktopMainView } from '@/components/app-view/desktop-main-view';
 
 export default function Home() {
   return (

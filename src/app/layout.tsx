@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/global/toaster";
 import { AppHeader } from '@/components/header/app-header';
+import { ConfiguratorProvider } from '@/context/ConfiguratorContext';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',
@@ -21,9 +22,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppHeader />
-        {children}
-        <Toaster />
+        <ConfiguratorProvider>
+          <AppHeader />
+          {children}
+          <Toaster />
+        </ConfiguratorProvider>
       </body>
     </html>
   );

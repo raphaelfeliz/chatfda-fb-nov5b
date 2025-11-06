@@ -1,17 +1,15 @@
-"use client";
+'use client';
 
-import { useTriage } from "@/hooks/use-triage";
-import { OptionCard } from "./option-card";
-import { SkuDisplay } from "./sku-display";
-import { ProgressTracker } from "../header/progress-tracker";
+import { useConfiguratorContext } from '@/context/ConfiguratorContext';
+import { OptionCard } from './option-card';
+import { SkuDisplay } from './sku-display';
 
 export function Configurator() {
-  const { currentState, sku, history, selectOption, reset, finalProduct, fullProductName } =
-    useTriage();
+  const { currentState, sku, selectOption, finalProduct, fullProductName } =
+    useConfiguratorContext();
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <ProgressTracker history={history} onReset={reset} />
       {sku && finalProduct ? (
         <>
           <SkuDisplay product={{...finalProduct, label: fullProductName}} />

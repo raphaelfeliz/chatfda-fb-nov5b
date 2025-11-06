@@ -13,7 +13,7 @@ export function OptionCard({ option, onClick }: OptionCardProps) {
     <button
       onClick={onClick}
       className={cn(
-        "group text-left rounded-lg overflow-hidden w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-opacity-75"
+        "group text-left rounded-lg overflow-hidden w-[350px] focus:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-opacity-75"
       )}
     >
       <Card className="h-full transition-all duration-200 ease-in-out bg-card border-border group-hover:bg-primary/20 group-hover:border-primary focus:bg-primary/20 focus:border-primary">

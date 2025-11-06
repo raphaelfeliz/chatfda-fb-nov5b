@@ -1,11 +1,11 @@
-import { ConfiguratorTab } from '@/components/configurator-tab';
+import { ChatTab } from '@/components/chat-tab';
 import { DesktopMainView } from '@/components/desktop-main-view';
 
-export default function Home() {
+export default function ChatPage() {
   return (
     <main className="min-h-screen w-full bg-background font-body">
       <div className="md:hidden">
-        <ConfiguratorTab />
+        <ChatTab />
       </div>
       <DesktopMainView />
     </main>

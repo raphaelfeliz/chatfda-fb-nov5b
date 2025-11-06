@@ -22,7 +22,7 @@ export function Configurator() {
             <span className="text-primary font-bold">Encontre Fácil:</span>{" "}
             {currentState.question}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid gap-4 md:gap-6 justify-items-center [grid-template-columns:repeat(auto-fit,minmax(350px,1fr))]">
             {currentState.options.map((option, index) => (
               <OptionCard
                 key={option.value + index}

@@ -6,7 +6,7 @@ import {
   Card,
   CardContent,
   CardFooter,
-} from '@/components/chat/card';
+} from '@/components/configurator/card';
 import { Button } from '@/components/global/button';
 import { MessageSquare } from 'lucide-react';
 import type { Option } from '@/lib/triage';

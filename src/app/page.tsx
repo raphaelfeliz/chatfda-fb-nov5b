@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChatPanel } from '@/components/chat/chat-panel';
-import { ChatTab } from '@/components/chat/chat-tab';
+import ChatTab from '@/components/chat/chat-tab';
 import { Configurator } from '@/components/configurator/configurator';
 import { ConfiguratorTab } from '@/components/configurator/configurator-tab';
 
@@ -49,8 +48,10 @@ export default function Home() {
           <div className="flex-1 p-4">
             <Configurator />
           </div>
-          <div className="w-[400px] border-l p-4">
-            <ChatPanel />
+          <div className="w-[400px] border-l">
+            <div className="sticky top-0">
+              <ChatTab />
+            </div>
           </div>
         </div>
       </div>

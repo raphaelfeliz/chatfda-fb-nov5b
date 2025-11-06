@@ -7,39 +7,18 @@ import { useConfiguratorContext } from '@/context/ConfiguratorContext';
 export function AppHeader() {
   const { history, reset } = useConfiguratorContext();
   return (
-    <header className="bg-background/80 backdrop-blur-sm z-40 w-full border-b">
-      {
-        /*
-        This container handles the responsive layout.
-        - Mobile: Default block layout, creating a two-row appearance.
-        - Desktop (md and up): Flexbox row, creating a single-row layout.
-      */
-      }
-      <div className="container mx-auto px-4 md:flex md:h-16 md:items-center md:justify-between">
-        {
-          /*
-          Top row on mobile, containing logo and mobile navigation.
-          Becomes the left-most item on desktop.
-        */
-        }
-        <div className="flex h-16 items-center justify-between md:h-auto">
-          <div className="relative h-full w-32">
-            <Image
-              src="/assets/images/logo FDA.png"
-              alt="Fábrica do Alumínio Logo"
-              fill
-              className="object-contain"
-            />
-          </div>
+    <header className="bg-background/80 backdrop-blur-sm z-40 w-full border-b h-[10vh]">
+      <div className="container mx-auto px-4 h-full flex flex-col justify-center items-center md:flex-row md:justify-between space-y-2 md:space-y-0">
+        <div className="relative w-32 h-[9vh]">
+          <Image
+            src="/assets/images/logo FDA.png"
+            alt="Fábrica do Alumínio Logo"
+            fill
+            className="object-contain"
+          />
         </div>
 
-        {
-          /*
-          Second row on mobile, containing the progress tracker.
-          Becomes the center item on desktop.
-        */
-        }
-        <div className="pb-4 md:pb-0">
+        <div>
           <ProgressTracker history={history} onReset={reset} />
         </div>
       </div>

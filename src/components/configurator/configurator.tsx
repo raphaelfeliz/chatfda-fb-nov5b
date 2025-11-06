@@ -17,8 +17,7 @@ export function Configurator() {
       ) : currentState ? (
         <>
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-8">
-            <span className="text-primary font-bold">Encontre Fácil:</span>{" "}
-            {currentState.question}
+          {currentState.question}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {currentState.options.map((option, index) => (

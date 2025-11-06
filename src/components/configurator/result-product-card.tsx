@@ -27,7 +27,8 @@ export function ResultProductCard({ product }: ResultProductCardProps) {
       <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 text-center">
         Produto encontrado
       </h2>
-      <Card className="w-full max-w-sm overflow-hidden shadow-xl bg-card border-border">
+      <Card className="w-full max-w-sm md:max-w-2xl overflow-hidden shadow-xl bg-card border-border md:grid md:grid-cols-2">
+        {/* --- IMAGE --- */}
         <CardContent className="p-0">
           <div className="relative aspect-square w-full bg-white">
             <Image
@@ -39,22 +40,26 @@ export function ResultProductCard({ product }: ResultProductCardProps) {
             />
           </div>
         </CardContent>
-        <div className="p-4 bg-card-foreground/5">
-            <p className="text-base font-semibold text-card-foreground text-center">
-              {product.label}
-            </p>
-        </div>
-        <CardFooter className="grid grid-cols-1 gap-2 p-4">
-          {product.url && (
-            <Button size="lg" className="bg-primary hover:bg-primary/90" asChild>
-              <Link href={product.url}>Ver Preço</Link>
+
+        {/* --- DETAILS --- */}
+        <div className="flex flex-col justify-between">
+          <div className="p-4 bg-card-foreground/5 md:bg-transparent md:p-6">
+              <p className="text-base font-semibold text-card-foreground text-center md:text-left md:text-lg">
+                {product.label}
+              </p>
+          </div>
+          <CardFooter className="grid grid-cols-1 gap-2 p-4 md:p-6">
+            {product.url && (
+              <Button size="lg" className="bg-primary hover:bg-primary/90" asChild>
+                <Link href={product.url}>Ver Preço</Link>
+              </Button>
+            )}
+            <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleWhatsAppClick}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Negociar no WhatsApp
             </Button>
-          )}
-          <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleWhatsAppClick}>
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Negociar no WhatsApp
-          </Button>
-        </CardFooter>
+          </CardFooter>
+        </div>
       </Card>
     </div>
   );

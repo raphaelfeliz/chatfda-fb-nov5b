@@ -1,3 +1,14 @@
+/*
+*file-summary*
+PATH: src/context/ConfiguratorContext.tsx
+PURPOSE: Centralize and expose configurator state via React Context using TriageMachine as the decision engine.
+SUMMARY: Manages the current question, selected options, SKU, and navigation history.
+         Provides hooks for selecting options and resetting the flow, allowing seamless state sharing across UI components.
+IMPORTS: React (context, hooks), TriageMachine, QuestionState, Option (from lib/triage)
+EXPORTS: ConfiguratorProvider, useConfiguratorContext (custom hook)
+*/
+
+
 'use client';
 
 import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';

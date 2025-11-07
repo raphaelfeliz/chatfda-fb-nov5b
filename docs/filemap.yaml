@@ -1,0 +1,491 @@
+src/lib/firebase.ts:
+  purpose: >
+    Initialize the Firebase environment and configure Firestore for offline-first 
+    persistence, ensuring chat messages and configurations remain available 
+    even without network connectivity.
+  how_it_does_that:
+    - Imports Firebase core (initializeApp) and Firestore modules (getFirestore, enableIndexedDbPersistence, enableMultiTabIndexedDbPersistence).
+    - Defines a verified Firebase configuration object with the app's credentials.
+    - Initializes a singleton Firebase app (app) and a shared Firestore instance (db).
+    - |
+      Immediately runs an asynchronous setup block to enable IndexedDB-based caching:
+      * Tries to enable single-tab persistence first.
+      * On lock failure, switches to multi-tab mode.
+      * Handles browser incompatibility and logs outcomes via console messages for debugging.
+  how_it_relates:
+    - Serves as the root dependency for all files that interact with Firestore (notably firestore.ts, chat-tab.tsx, and triage-machine.ts).
+    - Provides the shared database instance (db) used for reads, writes, and synchronization.
+    - Its persistence setup directly influences offline behavior verified in chat-tab.tsx and firestore.ts.
+    - Acts as the entry point in the application's bootstrap sequence before UI or logic layers initialize.
+
+src/lib/firestore.ts:
+  purpose: >
+    Provide a typed abstraction layer for Firestore operations, isolating 
+    all data reads and writes from the UI and ensuring deterministic, 
+    consistent message storage and retrieval.
+  how_it_does_that:
+    - Imports the initialized Firestore instance (db) from firebase.ts.
+    - Defines buildMessageId() to generate deterministic message IDs based on session, timestamp, and sender, guaranteeing unique yet reproducible document keys.
+    - |
+      Implements saveMessage() as a batched Firestore write:
+      * Creates a message document under chats/{sessionId}/messages/{messageId}.
+      * Simultaneously updates the parent session's updatedAt field.
+      * Uses serverTimestamp() to ensure canonical ordering.
+      * Employs writeBatch() for atomic commits, maintaining consistency between message and session data.
+    - |
+      Implements loadSession(), which:
+      * Queries all messages for a session ordered by client-side timestamps.
+      * Returns cached data instantly via Firestore's persistence layer when offline.
+  how_it_relates:
+    depends_on: src/lib/firebase.ts for Firestore initialization and persistence configuration.
+    used_by: chat-tab.tsx to send, store, and retrieve chat messages in real time.
+    coordinates_with: chat-storage.ts (legacy fallback) for session migration, but acts as the authoritative source in the Firestore-first architecture.
+    notes:
+      - Establishes the data-access boundary for the chat subsystem — UI and logic layers never call Firestore directly, ensuring clean separation and consistent schema enforcement.
+
+src/lib/chat-storage.ts:
+  purpose: >
+    Provide a Firestore-first persistence layer for chat sessions, maintaining 
+    backward compatibility with older localStorage-based sessions. It ensures 
+    smooth migration to Firestore's offline caching system without data loss.
+  how_it_does_that:
+    - |
+      Defines two core data types:
+      * ChatMessage — represents a single message with sender, text, timestamp, and UI variant.
+      * ChatSession — represents a conversation containing messages and metadata (version, device, timestamps).
+    - Implements createSession(), generating a new session with a unique ID, timestamps, and metadata scaffold.
+    - Implements saveSession(), which now logs a deprecation notice instead of writing to localStorage — enforcing Firestore as the new storage source.
+    - |
+      Implements loadSession(), which:
+      * Queries Firestore (via IndexedDB cache if offline) for ordered messages.
+      * Builds a ChatSession object from results.
+      * Falls back to legacy localStorage only if Firestore is empty or unavailable.
+      * Logs detailed console output for debugging and migration tracing.
+  how_it_relates:
+    depends_on: firebase.ts for Firestore initialization and persistence setup.
+    bridges: The transition between the old localStorage persistence model and the modern Firestore-first model defined in firestore.ts.
+    used_by: chat-tab.tsx during session bootstrap to recover past conversations.
+    notes:
+      - Acts as a compatibility layer, ensuring session continuity while all new reads and writes are fully managed by firestore.ts.
+
+src/components/chat/chat-tab.tsx:
+  purpose: >
+    Manage the chat session lifecycle, message handling, and UI synchronization 
+    using Firestore as the single source of truth. Provides seamless offline 
+    persistence and legacy fallback support during session initialization.
+  how_it_does_that:
+    - |
+      Bootstraps the chat session on mount:
+      * Tries to load session messages from Firestore (via loadSession with IndexedDB cache).
+      * Falls back to legacy localStorage (via chat-storage) if Firestore is empty.
+      * Creates a new session if none exists, ensuring continuity.
+    - Tracks session state via React hooks (useState, useEffect) for messages and session data.
+    - |
+      Implements optimistic updates:
+      * Adds messages instantly to UI before Firestore confirmation.
+      * Persists asynchronously using saveMessageToFirestore, allowing offline queuing and automatic replay.
+    - Logs all operations with detailed console grouping for debugging persistence flow.
+    - Maintains a deprecated local mirror (saveSession) for backward compatibility and audit visibility.
+    - Renders the UI through ChatBubbleArea (message list) and FooterArea (input field).
+  how_it_relates:
+    depends_on:
+      - firebase.ts and firestore.ts for Firestore access and persistence.
+      - chat-storage.ts for session management and fallback handling.
+      - ChatBubbleArea and FooterArea for UI rendering.
+    notes:
+      - Acts as the orchestration layer between data, logic, and UI — connecting Firestore's real-time updates to user interaction.
+      - Serves as the practical proof of the app's offline-first design, validating the integration between Firestore persistence and UI responsiveness.
+
+src/lib/triage.ts:
+  purpose: >
+    Define the core decision engine (TriageMachine) for the configurator system. 
+    It controls all question flow logic, guiding users step-by-step from a 
+    generic inquiry (“what are you looking for?”) to a concrete product SKU and URL.
+  how_it_does_that:
+    - Declares data structures for Option (UI option metadata) and QuestionState (current question and available choices).
+    - Implements the TriageMachine class, maintaining a private internal state (questionState) that evolves through deterministic transitions.
+    - |
+      Provides public methods:
+      * getState() — returns a deep copy of the current question state.
+      * reset() — resets the flow to the root question.
+      * triage(index) — processes user selections, advancing the flow according to current state and chosen option.
+    - Each question step is represented by a private method (e.g., askJanelaSystem, askPortaCorrerPersianaTipo) returning a QuestionState with localized text, image references, and optional SKUs or URLs.
+    - Transitions are state-driven and encoded explicitly, ensuring there are no invalid paths — every state transition leads either to another valid question or to a terminal SKU result.
+    - Embeds product data directly into options, allowing instant access to finalized configuration results.
+  how_it_relates:
+    - Acts as the logic core for the Configurator subsystem (configurator-tab.tsx), which uses it to render questions and navigate the decision tree.
+    - Conceptually parallels chat-tab.tsx but drives structured, deterministic interaction instead of conversational flow.
+    - Operates independently of Firestore but integrates downstream when configurations or SKUs are persisted via Firestore helpers.
+    - Serves as the single source of truth for configuration rules, guaranteeing that both UI and backend logic resolve to consistent, reproducible outcomes.
+
+src/components/configurator/configurator-tab.tsx:
+  purpose: >
+    Provide the entry point component for the Configurator interface, serving as 
+    a lightweight wrapper around the main Configurator component. It integrates 
+    the configurator into the tabbed UI system that parallels the chat interface.
+  how_it_does_that:
+    - Imports the main Configurator logic and rendering component from @/components/configurator/configurator.
+    - Exports a functional React component, ConfiguratorTab, which simply returns <Configurator />.
+    - This indirection allows the configurator to be loaded or swapped cleanly within a larger tabbed layout (e.g., between “Chat” and “Configurator” tabs) without modifying the core logic of either.
+    - Keeps the separation between UI composition (handled here) and configuration flow logic (handled by triage.ts and the main Configurator component).
+  how_it_relates:
+    - Works alongside chat-tab.tsx to form the dual interaction modes described in the system design.
+    - Delegates all logic and state transitions to Configurator, which in turn depends on TriageMachine (src/lib/triage.ts) for decision flow.
+    - Fits into the overall UI Layer of the architecture — this file is purely structural, ensuring modularity and composability between different interaction surfaces.
+
+src/components/chat/footer-area/footer-area.tsx:
+  purpose: >
+    Provide the chat input interface where users compose and send messages. 
+    This component captures text input, validates it, and triggers message 
+    submission through a parent callback.
+  how_it_does_that:
+    - Defines a React functional component FooterArea with a single prop: onSendMessage(text: string).
+    - Maintains internal state inputValue via useState to store the live contents of the input field.
+    - |
+      Includes three key handlers:
+      * handleInputChange() — updates inputValue on user typing.
+      * handleSendClick() — triggers when the user clicks the send button; trims input, calls onSendMessage(), and clears the field.
+      * handleKeyPress() — detects the Enter key to send messages via keyboard.
+    - Renders an input field and a circular Send button (lucide-react icon) styled with Tailwind CSS for modern, responsive design.
+    - Provides clear focus and hover states with color transitions for accessibility and feedback.
+  how_it_relates:
+    used_by: chat-tab.tsx, where onSendMessage is implemented to perform optimistic UI updates and Firestore writes.
+    notes:
+      - Belongs to the UI Layer, fully stateless with respect to session or Firestore data.
+      - Complements ChatBubbleArea by handling input and emission of messages, while ChatBubbleArea handles display and reception.
+      - Demonstrates clean separation of concerns — presentation and user input are decoupled from message persistence and business logic.
+
+src/components/chat/bubble-area/chat-bubble-area.tsx:
+  purpose: >
+    Display the scrollable chat history area that visually lists all 
+    chat messages in sequence.
+  how_it_does_that:
+    - Defines a React functional component ChatBubbleArea that accepts an array of messages, each with an id, text, and variant (incoming or outgoing).
+    - Maps over this array to render each message through the ChatBubble component, using String(msg.id) as the React key for stability across numeric and string IDs.
+    - Wraps the content in a Tailwind-styled container (flex-1, overflow-y-auto, p-6, space-y-4) to ensure scrollability and consistent spacing between messages.
+    - Remains stateless and purely presentational—no persistence or interactivity logic is embedded.
+  how_it_relates:
+    used_by: chat-tab.tsx — where it receives the live messages array (from Firestore or local cache).
+    depends_on: chat-bubble.tsx for rendering individual messages with sender-specific alignment and style.
+    notes:
+      - Complements footer-area.tsx (input) and chat-tab.tsx (controller) as the display layer of the chat subsystem.
+      - Plays a critical role in maintaining real-time visual coherence when new messages are appended optimistically or received from Firestore updates.
+
+src/components/chat/bubble-area/chat-bubble.tsx:
+  purpose: >
+    Render a single chat message bubble, visually styled based on whether 
+    it was sent by the user (outgoing) or received from the bot (incoming).
+  how_it_does_that:
+    - Declares a simple React functional component ChatBubble taking message (text content) and variant (incoming | outgoing) as props.
+    - |
+      Applies conditional Tailwind CSS classes to distinguish alignment and color:
+      * Incoming messages → dark blue background (#14293D), white text, left-aligned.
+      * Outgoing messages → cyan background (#36C0F2), dark text, right-aligned.
+    - Wraps the text in a rounded bubble (rounded-t-2xl + side-specific rounding) for a polished appearance.
+    - The component is purely presentational — it doesn't handle any logic, events, or data fetching.
+  how_it_relates:
+    used_by: chat-bubble-area.tsx, which maps over message lists and passes message and variant to render individual bubbles.
+    indirectly_connected_to: chat-tab.tsx (the chat controller), which supplies the message array to ChatBubbleArea.
+    notes:
+      - Together, these components form the visual layer of the chat subsystem — ChatTab handles logic, ChatBubbleArea handles lists, and ChatBubble handles single-item presentation.
+
+src/lib/utils.ts:
+  purpose: >
+    Provide a lightweight utility function to safely compose Tailwind CSS 
+    class names, merging conditional or conflicting styles into a single 
+    valid string.
+  how_it_does_that:
+    - Imports clsx (for conditional class concatenation) and twMerge (for intelligently merging Tailwind class conflicts).
+    - |
+      Defines a single exported function cn(...inputs: ClassValue[]), which:
+      * Passes all inputs through clsx() to handle boolean or conditional class logic.
+      * Feeds the result to twMerge() to eliminate duplicates or contradictory Tailwind classes.
+      * Returns a clean, unified string of class names suitable for use in JSX components.
+  how_it_relates:
+    - Serves as a shared utility that can be imported by any component applying complex or dynamic Tailwind styles (e.g., buttons, chat bubbles, configurator cards).
+    - Currently not directly referenced in the chat subsystem files shown, but typically used across the app to standardize CSS composition.
+    - Ensures consistent styling behavior and prevents common Tailwind conflicts like overlapping p-2 vs. p-4 or bg-* variants.
+
+src/app/globals.css:
+  purpose: >
+    Define global styling, color themes, and layout variables for the entire 
+    application, using Tailwind CSS. It standardizes visual identity, including 
+    color palettes, typography, and surface layers.
+  how_it_does_that:
+    - Imports Tailwind's base, components, and utilities layers with @tailwind directives.
+    - Sets the global body font to Inter, a clean sans-serif typeface for readability.
+    - Declares a set of CSS custom properties (--variables) under :root, representing the design system's color and layout tokens — including backgrounds, text, cards, borders, inputs, and interactive states.
+    - Duplicates these variables under the .dark selector to ensure proper dark mode consistency (same values here, but structured for potential overrides).
+    - |
+      Defines application-wide base rules:
+      * Applies border color globally via @apply border-border.
+      * Applies background and text color via @apply bg-background text-foreground.
+    - Includes extended variables for charts, sidebar styling, and component radii, suggesting integration with a dashboard-like or configurator UI.
+  how_it_relates:
+    - Provides the styling foundation for all UI components (chat-tab.tsx, footer-area.tsx, configurator UIs, etc.).
+    - Works in conjunction with Tailwind classnames used across the app's React components.
+    - Ensures consistent color contrast and theme behavior, enabling a unified dark aesthetic across both the chat and configurator subsystems.
+
+src/components/configurator/option-card.tsx:
+  purpose: >
+    Render a selectable option card within the configurator flow — representing 
+    one possible choice in the current TriageMachine question (e.g., 
+    product type, system, or material).
+  how_it_does_that:
+    - |
+      Defines a client-side React component OptionCard that takes two props:
+      * option: an Option object from @/lib/triage containing label, image, SKU, etc.
+      * onClick: callback triggered when the card is selected.
+    - Renders the option inside a clickable <button> that wraps a stylized Card component.
+    - |
+      Uses Tailwind classes (via cn() utility) for accessibility and interactive styling:
+      * group-hover and focus states highlight the selection with bg-primary/20 and border-primary.
+      * Rounded corners, ring outlines, and smooth transitions provide tactile feedback.
+    - |
+      Inside the card:
+      * The CardContent shows the option image (next/image for responsive, optimized loading).
+      * The CardFooter displays the option's label in a bold, readable style.
+  how_it_relates:
+    used_by: the Configurator UI component (not shown here) to render available choices from the current TriageMachine state.
+    depends_on:
+      - "@/lib/triage"
+      - "@/components/configurator/card"
+      - "@/lib/utils"
+    complements: ResultProductCard
+    notes:
+      - OptionCard represents intermediate selections.
+      - ResultProductCard shows the final outcome.
+      - Together, these form the UI front-end of the product configurator logic described in triage.ts.
+
+src/components/configurator/result-product-card.tsx:
+  purpose: >
+    Render the final product card after a configurator flow is complete, 
+    displaying the selected SKU's image, label, and interactive buttons 
+    for viewing or negotiating the product.
+  how_it_does_that:
+    - Declares a ResultProductCard React client component that receives a product of type Option (from lib/triage).
+    - Displays product data inside a Card (custom component imported from /configurator/card).
+    - |
+      Layout is split into two rows:
+      * Row 1: Two-column grid — product image (via next/image) on the left, action buttons on the right.
+      * The “Ver Preço” button links to product.url (if present).
+      * The “Negociar” button triggers a WhatsApp chat using generateWhatsAppLink(product.label) and opens it in a new tab.
+      * Row 2: Product name centered below the card.
+    - Uses Tailwind utility classes for consistent color palette and responsive layout (bg-card, border-border, shadow-xl).
+    - Incorporates Lucide React's MessageSquare icon for the WhatsApp CTA.
+  how_it_relates:
+    depends_on:
+      - "@/lib/triage"
+      - "@/lib/whatsapp"
+      - "@/components/configurator/card"
+      - "@/components/global/button"
+    used_by: The Configurator flow, likely as the terminal screen when a user completes their selection path via the TriageMachine.
+    notes:
+      - Integrates the configurator's decision output (Option) with user engagement actions — bridging automated SKU selection and human-assisted sales.
+
+src/components/header/breadcrumb.tsx:
+  purpose: >
+    Render a breadcrumb navigation trail that displays the user's progression 
+    or navigation path — typically used in the configurator to show how auto 
+    along the decision tree they've gone.
+  how_it_does_that:
+    - Defines a simple functional component Breadcrumb that receives a history array of strings representing the sequential steps or labels chosen so far.
+    - Iterates over history using map(), displaying each entry separated by a right-arrow icon (ChevronRight from lucide-react).
+    - The last element in the sequence (current step) is styled differently (font-medium text-foreground) to visually indicate the active position.
+    - |
+      Uses Tailwind CSS for a compact, adaptive layout:
+      * flex with flex-wrap keeps breadcrumbs readable on narrow screens.
+      * text-xs sm:text-sm scales text size responsively.
+      * text-muted-foreground ensures low visual weight for earlier steps.
+  how_it_relates:
+    used_by: configurator or other UI flows that track decision history (likely integrated with the TriageMachine flow).
+    depends_on:
+      - lucide-react
+      - Tailwind color tokens (globals.css)
+    notes:
+      - Complements the configurator UI's OptionCard and ResultProductCard components by providing contextual navigation — helping users understand where they are in the flow.
+
+src/components/header/progress-tracker.tsx:
+  purpose: >
+    Provide a top-level progress tracker that combines navigation context 
+    (breadcrumb) and a reset control — allowing users to both visualize 
+    their position in the configurator flow and restart it at any point.
+  how_it_does_that:
+    - |
+      Defines a ProgressTracker React functional component that accepts:
+      * history: an array of strings representing the steps taken so far.
+      * onReset: callback function to reset the configurator state.
+    - |
+      Renders two key child components:
+      * <ResetButton /> — a clickable control to restart the flow, imported from ./restart-button.
+      * <Breadcrumb /> — displays the user's decision path, imported from ./breadcrumb.
+    - Uses a responsive flex layout to position both elements side-by-side with adaptive spacing (gap-2 md:gap-4).
+    - The combination provides both context (breadcrumb) and control for a clear, minimal progress UI.
+  how_it_relates:
+    depends_on:
+      - Breadcrumb (./breadcrumb)
+      - ResetButton (./restart-button)
+    used_by: configurator or header components to display real-time progress during a TriageMachine session.
+    notes:
+      - Complements the OptionCard and ResultProductCard components by giving users navigational awareness and an immediate restart mechanism — critical for UX in multi-step selection flows.
+
+src/context/ConfiguratorContext.tsx:
+  purpose: >
+    Provide a global React context that manages the complete state and 
+    logic of the product configurator. It bridges the UI components with 
+    the TriageMachine decision engine, keeping track of the user's progress, 
+    selected options, and final product outcome.
+  how_it_does_that:
+    - |
+      Defines ConfiguratorContext with fields for:
+      * currentState: current question node from the TriageMachine.
+      * sku: product SKU when the flow reaches a terminal state.
+      * history: labels of previously chosen options for breadcrumb display.
+      * finalProduct: the selected Option once a SKU is resolved.
+      * fullProductName: human-readable concatenation of selected labels.
+      * selectOption(): advances the triage logic and updates context state.
+      * reset(): fully resets the configurator to its root state.
+    - Implements ConfiguratorProvider to initialize a TriageMachine instance and persist the relevant React states (useState, useCallback, useMemo).
+    - Handles triage transitions via machine.triage(index) — either progressing to the next question (QuestionState) or resolving to a final product with SKU metadata.
+    - Uses context propagation to make these values and methods available to any descendant component via useConfiguratorContext().
+  how_it_relates:
+    depends_on:
+      - "@/lib/triage"
+    used_by:
+      - Configurator and its subcomponents (OptionCard, ResultProductCard, ProgressTracker)
+    enables_features:
+      - Breadcrumb history in ProgressTracker.
+      - Reset handling via ResetButton.
+      - Final product rendering in ResultProductCard.
+      - Option transitions in OptionCard.
+    notes:
+      - This file is effectively the state backbone of the configurator system — turning TriageMachine's pure logic into live, reactive UI state.
+
+src/root/next.config.ts:
+  type: summary
+  purpose: >
+    Configure the Next.js build and runtime behavior for the project, 
+    relaxing strict compile-time checks and defining external image host permissions.
+  summary: |
+    Exports a typed NextConfig object used by Next.js at build time.
+
+    Disables type-checking and linting during builds for smoother CI/CD and hosting deployment:
+    * typescript.ignoreBuildErrors = true
+    * eslint.ignoreDuringBuilds = true
+
+    Configures Next.js Image Optimization via images.remotePatterns to safely allow images from several external domains:
+    * placehold.co (generic placeholder images)
+    * images.unsplash.com (stock photos)
+    * picsum.photos (random sample photos)
+    * storage.googleapis.com (Firebase or GCP-hosted assets)
+
+    Ensures that all these remote hosts can serve images without triggering Next.js domain restrictions.
+  how_it_relates:
+    - Enables product and chat images (from triage options or placeholder URLs) to load correctly in components such as OptionCard and ResultProductCard.
+    - Ensures safe static optimization when next/image components are used throughout the UI.
+    - Complements tailwind.config.ts and globals.css by setting runtime-level behavior rather than styling.
+
+next.config.mjs:
+  type: summary
+  purpose: >
+    Provide an alternative or deployment-specific Next.js configuration 
+    for static export builds (e.g., GitHub Pages, Firebase Hosting without SSR).
+  summary: |
+    Defines a lightweight nextConfig object using ES module syntax (.mjs).
+
+    Enables static site export via output: 'export', which tells Next.js to generate a fully static HTML/CSS/JS bundle rather than running a Node server.
+
+    Disables Next.js' built-in image optimization by setting images.unoptimized = true, ensuring compatibility with environments that don't support the next/image optimization pipeline (e.g., CDN-based hosting or purely static servers).
+
+    Overrides next.config.ts when the build environment expects .mjs or static-only configuration.
+  how_it_relates:
+    - Complements next.config.ts, which is used for development or dynamic hosting.
+    - Works alongside Firebase deployment files (apphosting.yaml) to support hosting flexibility.
+    - Affects components using <Image /> (like OptionCard and ResultProductCard), forcing them to load raw images directly rather than through the optimization server.
+
+package.json:
+  type: summary
+  purpose: >
+    Defines the project's metadata, dependencies, and available npm scripts 
+    for building, developing, and running the Next.js + Firebase + Genkit-based application.
+  summary: >
+    This file identifies the project as "nextn", a private Next.js 15.x web app 
+    integrating Firebase, Genkit AI, and a Tailwind + Radix + shadcn-inspired UI stack.
+  key_sections:
+    scripts:
+      - dev — Runs the development server on port 9003 using Turbopack (Next.js fast bundler).
+      - genkit:dev and genkit:watch — Start the Genkit AI development environment via src/ai/dev.ts.
+      - build — Compiles the app for production.
+      - start — Launches the production server.
+      - lint — Runs ESLint for code quality checks.
+      - typecheck — Performs TypeScript validation without emitting files.
+    dependencies:
+      - 'Framework: next@15, react@18, react-dom@18'
+      - 'UI / Styling: tailwindcss, clsx, tailwind-merge, tailwindcss-animate, lucide-react, and many Radix UI primitives.'
+      - 'Data & Logic: firebase@11 for chat persistence, date-fns for date utilities, zod for schema validation.'
+      - 'AI / Genkit: @genkit-ai/google-genai, @genkit-ai/next, genkit, genkit-cli.'
+      - 'Form & Hooks: react-hook-form, @hookform/resolvers.'
+      - 'UI Enhancements: recharts for charts, embla-carousel-react for carousel UI.'
+    dev_dependencies:
+      - |
+        Include type definitions and tooling:
+        * @types/react, @types/node, typescript, postcss, tailwindcss, and genkit-cli.
+  how_it_relates:
+    - Drives build and runtime behavior for files like next.config.ts and tailwind.config.ts.
+    - Powers AI logic in /src/ai/dev.ts and /src/lib/triage.ts via genkit tooling.
+    - Supports Firebase integration in /src/lib/firebase.ts and /src/lib/firestore.ts.
+    - All UI layers (/components) depend on Radix and Tailwind-related packages listed here.
+
+tailwind.config.ts:
+  type: summary
+  purpose: >
+    Configure the Tailwind CSS design system for the project — defining 
+    theme extensions, dark mode behavior, and reusable style variables 
+    consistent with the global CSS palette.
+  summary: >
+    This file exports a Config object (typed via tailwindcss) that tailors 
+    the utility classes to match the project's design language and 
+    component structure.
+  core_settings:
+    Dark Mode: Enabled via class toggle (darkMode: ['class']), giving full manual control over light/dark theme switching.
+    Content Paths: Scans all component, app, and page directories under /src for class usage to optimize the CSS bundle.
+  theme_extensions:
+    Fonts: Defines semantic font families — body, headline, and code — all defaulting to Inter or monospace.
+    Colors: |
+      Dynamically bound to CSS variables defined in globals.css (using hsl(var(--…))).
+      Includes coherent groups for background, card, popover, primary, secondary, muted, accent, destructive, and sidebar.
+      The chart color group is provided for analytics or visualization components.
+    Border Radius: Linked to CSS variables for consistent rounded corner scaling (lg, md, sm).
+    Animations: Adds reusable accordion-up and accordion-down keyframes, used in collapsible UI sections (like Radix Accordion components).
+  plugins:
+    - Integrates tailwindcss-animate, extending Tailwind's animation utilities with declarative transitions.
+  how_it_relates:
+    - Works in tandem with /src/app/globals.css, which defines the --color variables used here.
+    - All React components (chat UI, configurator, cards, etc.) rely on these Tailwind utilities for consistent color theming and animation.
+    - Complements design-focused Radix components imported in many UI files
+
+firestore.rules:
+  type: summary
+  purpose: >
+    Define Firestore's access control policies — determining who can read or 
+    write data and under what conditions. Currently, this file operates in 
+    an open-access development mode, permitting unrestricted reads and 
+    writes across the entire database.
+  summary: |
+    This rule set uses Firestore's version 2 syntax and applies globally to all documents via the wildcard pattern /{document=**}.
+    It explicitly allows any operation (allow read, write: if true;), meaning that all users — authenticated or anonymous — have full read/write privileges.
+    The accompanying comment clarifies this is temporary and will later be replaced by App Check enforcement and schema-based validation rules.
+  core_settings:
+    Rules Version: 2
+    Scope: All documents under any collection (/{document=**})
+    Access: Unconditional (full read/write)
+    Authentication Required: ❌ None
+    Intended Use: Rapid connectivity testing during development
+  risks:
+    - This configuration is insecure for production; anyone with the project's credentials can modify or delete data.
+    - Data schema and user ownership checks are absent, exposing the database to potential corruption or unauthorized writes.
+    - Should be replaced by rules enforcing authentication (request.auth != null) and validating expected document shapes.
+  how_it_relates:
+    - Works directly with Firestore initialization in src/lib/firebase.ts, which connects the client app to the same project (gen-lang-client-0545699517).
+    - Affects all Firestore interactions in src/lib/firestore.ts and src/lib/chat-storage.ts — those files assume successful read/write operations because security rules are fully permissive.
+    - Once hardened, this file will govern access for both the chat subsystem (/chats/{sessionId}/messages/...) and any future configurator persistence collections.

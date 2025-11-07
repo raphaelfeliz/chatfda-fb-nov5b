@@ -1,3 +1,12 @@
+/*
+*file-summary*
+PATH: src/components/chat/footer-area/footer-area.tsx
+PURPOSE: Provide the chat input interface for composing and sending messages.
+SUMMARY: Implements a controlled text input with validation, Enter-key support, and a Send button using lucide-react icons.
+         Emits user messages via an onSendMessage callback to the parent (ChatTab), ensuring UI-only responsibility.
+IMPORTS: React (useState), lucide-react (Send icon)
+EXPORTS: FooterArea (React functional component)
+*/
 
 import React, { useState } from 'react';
 import { Send } from 'lucide-react';

@@ -1,3 +1,14 @@
+/*
+*file-summary*
+PATH: src/components/configurator/result-product-card.tsx
+PURPOSE: Display the final selected product with image, label, and actions for price viewing and WhatsApp negotiation.
+SUMMARY: Presents a two-row card layout with an image preview, product info, and interactive buttons for viewing price (via product.url)
+         or contacting via WhatsApp (using generateWhatsAppLink). Built with Card and Button UI components and Next.js Image/Link.
+IMPORTS: React, Next.js Image/Link, Card components, Button, MessageSquare (lucide-react), Option (from lib/triage), generateWhatsAppLink (from lib/whatsapp)
+EXPORTS: ResultProductCard (React functional component)
+*/
+
+
 'use client';
 
 import Image from 'next/image';

@@ -1,3 +1,13 @@
+/*
+*file-summary*
+PATH: tailwind.config.ts
+PURPOSE: Define and extend TailwindCSS theme configuration and design system.
+SUMMARY: Sets dark mode rules, color tokens (linked to CSS vars), font families, border radius, and animations. Integrates tailwindcss-animate plugin for motion effects.
+IMPORTS: tailwindcss Config type, tailwindcss-animate plugin
+EXPORTS: Tailwind configuration object (default)
+*/
+
+
 import type {Config} from 'tailwindcss';
 
 export default {

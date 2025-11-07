@@ -1,3 +1,14 @@
+/*
+*file-summary*
+PATH: src/components/header/breadcrumb.tsx
+PURPOSE: Display a breadcrumb trail showing the user’s navigation or decision path.
+SUMMARY: Iterates through a history array, separating items with a ChevronRight icon.
+         Highlights the last item as the current step, with responsive and theme-aware styling.
+IMPORTS: React, ChevronRight (lucide-react)
+EXPORTS: Breadcrumb (React functional component)
+*/
+
+
 import { ChevronRight } from "lucide-react";
 
 type BreadcrumbProps = {

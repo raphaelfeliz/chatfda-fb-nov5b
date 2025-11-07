@@ -1,3 +1,15 @@
+/*
+*file-summary*
+PATH: src/lib/firestore.ts
+PURPOSE: Provide a typed abstraction layer for Firestore operations used by the chat and configurator subsystems.
+SUMMARY: Defines deterministic ID generation for messages and implements Firestore read/write helpers (`saveMessage`, `loadSession`)
+         to manage chat data under `/chats/{sessionId}/messages/{messageId}`. Uses batched writes for consistency and
+         server timestamps for authoritative ordering. Supports offline caching transparently via Firestore’s persistence layer.
+IMPORTS: ./firebase (db instance), firebase/firestore (collection, doc, query, orderBy, setDoc, writeBatch, serverTimestamp)
+EXPORTS: buildMessageId(), saveMessage(), loadSession()
+*/
+
+
 // src/lib/firestore.ts
 import { db } from "./firebase";
 import {

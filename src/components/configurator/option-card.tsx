@@ -1,3 +1,14 @@
+/*
+*file-summary*
+PATH: src/components/configurator/option-card.tsx
+PURPOSE: Render a selectable option card for each configurator choice within the TriageMachine flow.
+SUMMARY: Displays an image and label inside a styled Card component with hover and focus feedback.
+         Calls an onClick handler when selected, driving the configurator’s state transition.
+IMPORTS: React, Next.js Image, Card components, cn (utility), Option (from lib/triage)
+EXPORTS: OptionCard (React functional component)
+*/
+
+
 'use client';
 import type { Option } from "@/lib/triage";
 import Image from "next/image";

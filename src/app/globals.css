@@ -1,3 +1,14 @@
+/*
+*file-summary*
+PATH: src/app/globals.css
+PURPOSE: Define global Tailwind-based theme and typography for the entire app.
+SUMMARY: Establishes dark-mode compatible color variables, layout tokens, and font settings.
+         Applies base Tailwind layers and ensures consistent foreground/background styling.
+IMPORTS: Tailwind base, components, and utilities layers.
+EXPORTS: Global CSS variables and base theme definitions.
+*/
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

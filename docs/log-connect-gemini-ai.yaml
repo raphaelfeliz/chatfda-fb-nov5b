@@ -1,0 +1,254 @@
+project_log:
+  title: "Gemini AI Integration — Consolidated Progress Log"
+  format_version: "2.0"
+  phases:
+
+    - phase: "PLANNING & INITIAL SETUP"
+      checkpoints:
+        - id: 1
+          title: "CREATE PLAN"
+          purpose: "Outline the steps required to connect the chat with Gemini AI."
+          action: "Created `docs/connect-gemini-ai.yaml` with the initial plan."
+          status: success
+          remember: "The plan defines 4 key tasks."
+        - id: 2
+          title: "VERIFY SETUP"
+          purpose: "Confirm Genkit and dependencies were already installed."
+          action: "Checked `package.json` and `src/ai/genkit.ts` — Genkit setup found."
+          status: success
+          remember: "Genkit and Google AI plugin confirmed."
+        - id: 3
+          title: "UPDATE PLAN (STEPS 1 & 2)"
+          purpose: "Reflect completed setup in documentation."
+          action: "Updated plan YAML marking steps 1 & 2 as complete."
+          status: success
+          remember: "Next: create API route."
+
+    - phase: "BACKEND INTEGRATION"
+      checkpoints:
+        - id: 4
+          title: "CREATE API ROUTE"
+          purpose: "Implement backend endpoint to connect chat and Gemini AI."
+          action: "Created `src/app/api/chat/route.ts` referencing `menuFlow`."
+          status: success
+          remember: "Endpoint available at `/api/chat`."
+        - id: 5
+          title: "UPDATE CHAT COMPONENT"
+          purpose: "Wire up frontend to send messages to the new API."
+          action: "Modified `chat-tab.tsx` to call `/api/chat` and handle response."
+          status: success
+          remember: "Chat now posts user messages to Gemini API."
+        - id: 6
+          title: "FINALIZE PLAN"
+          purpose: "Mark project milestone as complete."
+          action: "Updated `docs/connect-gemini-ai.yaml` with all tasks done."
+          status: success
+          remember: "Integration milestone closed."
+
+    - phase: "BUILD ERROR RESOLUTION"
+      checkpoints:
+        - id: 7
+          title: "FIX BUILD ERROR (ChatBubbleArea)"
+          purpose: "Resolve incorrect import."
+          action: "Changed to default import in `chat-tab.tsx`."
+          status: success
+          remember: "Use `import ChatBubbleArea from '@/components/chat/bubble-area/chat-bubble-area'`."
+        - id: 8
+          title: "FIX BUILD ERROR (FooterArea)"
+          purpose: "Resolve missing export issue."
+          action: "Switched to default import in `chat-tab.tsx`."
+          status: success
+          remember: "Ensure default imports match export style."
+        - id: 9
+          title: "FIX BUILD ERROR (Configurator)"
+          purpose: "Prevent import mismatch."
+          action: "Added default export to `configurator.tsx` and updated wrapper import."
+          status: success
+          remember: "Default exports standardized."
+        - id: 10
+          title: "VERIFY OTHER COMPONENTS"
+          purpose: "Proactively check similar import issues."
+          action: "Reviewed related components for consistent export usage."
+          status: success
+          remember: "No additional mismatches found."
+        - id: 11
+          title: "FIX BUILD ERROR (page.tsx - Configurator)"
+          purpose: "Correct import for Configurator."
+          action: "Changed from named to default import in `page.tsx`."
+          status: success
+          remember: "Main page now builds cleanly."
+        - id: 12
+          title: "FIX BUILD ERROR (page.tsx - ChatTab)"
+          purpose: "Correct import for ChatTab."
+          action: "Switched from default to named import."
+          status: success
+          remember: "All imports aligned."
+
+    - phase: "STRUCTURAL REWRITES"
+      checkpoints:
+        - id: 13
+          title: "REWRITE PAGE (page.tsx)"
+          purpose: "Add documentation header and align imports."
+          action: "Rewrote `page.tsx` with file-summary header and proper imports."
+          status: success
+          remember: "`ChatTab` named, `Configurator` default."
+        - id: 14
+          title: "REWRITE CHAT COMPONENT (chat-tab.tsx)"
+          purpose: "Stabilize chat logic and structure."
+          action: "Added section comments, maintained Firestore-first bootstrap, preserved layout."
+          status: success
+          remember: "UI and behavior identical; now fully documented."
+        - id: 15
+          title: "FIX RENDER LOOP (chat-tab.tsx)"
+          purpose: "Eliminate re-render feedback."
+          action: "Removed recursive state updates in useEffect."
+          status: success
+          remember: "Local mirror persists safely."
+        - id: 16
+          title: "REWRITE CONFIGURATOR TAB"
+          purpose: "Document wrapper and ensure import consistency."
+          action: "Added file header, imported default Configurator."
+          status: success
+          remember: "Now conforms to module pattern."
+        - id: 17
+          title: "REWRITE CONFIGURATOR"
+          purpose: "Standardize exports and add documentation."
+          action: "Rewrote component with unified default export."
+          status: success
+          remember: "Ready for modular reuse."
+
+    - phase: "AI BACKEND IMPLEMENTATION"
+      checkpoints:
+        - id: 18
+          title: "CREATE FLOW STUB (genkit.ts)"
+          purpose: "Set up minimal Genkit instance with Google plugin."
+          action: "Added `ai = genkit({ plugins: [googleAI()] })` export."
+          status: success
+          remember: "Validated Genkit initialization."
+        - id: 19
+          title: "IDENTIFY MISSING EXPORT (menuFlow)"
+          purpose: "Debug missing export in API route."
+          action: "Confirmed only `ai` existed in `genkit.ts`."
+          status: success
+          remember: "Flow function required implementation."
+        - id: 20
+          title: "IMPLEMENT menuFlow"
+          purpose: "Create AI handler compatible with current Genkit version."
+          action: "Added `menuFlow(last, history)` using `ai.generate({ prompt })`."
+          status: success
+          remember: "Avoids deprecated defineFlow."
+        - id: 21
+          title: "ADD HEADER & SECTION COMMENTS (genkit.ts)"
+          purpose: "Standardize documentation structure."
+          action: "Added full header, section comments for configuration and flow."
+          status: success
+          remember: "File now future-proof and readable."
+        - id: 22
+          title: "VERIFY ROUTE IMPORT ALIGNMENT"
+          purpose: "Ensure `menuFlow` import correctness."
+          action: "Confirmed `import { menuFlow } from '@/ai/genkit'` in route.ts."
+          status: success
+          remember: "Modules aligned and consistent."
+
+    - phase: "TEST PREPARATION & EXECUTION"
+      checkpoints:
+        - id: 23
+          title: "PREPARE TESTING PHASE"
+          purpose: "Set up environment for end-to-end test."
+          action: "Restarted dev server; verified chat UI readiness."
+          status: success
+          remember: "Testing conditions established."
+        - id: 24
+          title: "REWRITE API ROUTE (route.ts)"
+          purpose: "Add environment validation and modern structure."
+          action: "Rewrote route with Node.js runtime, headers, section comments, error handling."
+          status: success
+          remember: "Clean, maintainable handler — ready for production."
+        - id: 25
+          title: "VERIFY ENVIRONMENT VARIABLE"
+          purpose: "Ensure `.env.local` variables load into runtime."
+          action: "Confirmed `GOOGLE_GENAI_API_KEY` via node command."
+          status: success
+          remember: "Environment ready for Gemini API calls."
+        - id: 26
+          title: "TEST API ROUTE (Gemini Integration)"
+          purpose: "Confirm full pipeline from chat to Gemini AI."
+          action: >
+            Sent test request via curl:
+            `curl -X POST http://localhost:9003/api/chat -H "Content-Type: application/json" -d '{ "messages": [ { "variant": "outgoing", "text": "Hello again!", "timestamp": 123456789, "sender": "user", "id": "t1" } ] }'`
+            Response:
+            `{"text":"Hello again! It's good to hear from you.\n\nHow can I help you today?"}`
+          status: success
+          remember: "End-to-end connection confirmed — Gemini responding through Genkit."
+
+24 UPDATE CHAT COMPONENT (chat-tab.tsx, AI-integrated)
+purpose: >
+  Connect the frontend chat directly with the Gemini-backed `/api/chat` endpoint
+  while retaining Firestore and local persistence. Introduce structured, traceable
+  logging for every phase of message send/receive.
+action: >
+  Replaced `src/components/chat/chat-tab.tsx` with a new version that:
+    - Keeps Firestore-first bootstrap (unchanged logic)
+    - Adds full AI communication pipeline via `fetch('/api/chat')`
+    - Appends Gemini replies (`sender: 'assistant'`, `variant: 'incoming'`)
+    - Optionally persists AI replies to Firestore
+    - Implements precise timing (`console.time`) and grouped logs for each phase
+    - Uses `[ChatTab → AI]` scope prefix for all logs
+status: success
+remember: >
+  The chat UI is now fully interactive with the backend AI route.
+  Each send shows a complete trace:
+    - optimistic append
+    - Firestore write
+    - API call
+    - AI response
+    - assistant append
+    - optional Firestore save
+
+25 UPDATE API ROUTE (src/app/api/chat/route.ts)
+purpose: >
+  Strengthen the backend route that bridges the frontend chat with the Gemini AI model.
+  Add full structured logging and runtime safety to make it observable and stable.
+action: >
+  Replaced `src/app/api/chat/route.ts` with a new implementation that:
+    - Forces Node.js runtime to ensure environment and crypto support for Genkit.
+    - Validates `GOOGLE_GENAI_API_KEY` before executing the AI call.
+    - Adds structured timing logs (`console.time`) for model latency and total request duration.
+    - Logs request message count, history size, and output text length.
+    - Normalizes AI output consistently (handles string or { text } formats).
+    - Returns clean JSON payload `{ text }` or structured error responses with HTTP status codes.
+status: success
+remember: >
+  The API is now transparent for debugging:
+    - All requests log step-by-step timing.
+    - Failures are isolated by scope.
+    - Fully compatible with the new ChatTab’s logging pattern `[ChatTab → AI]`.
+
+26 UPDATE AI BRIDGE (src/ai/genkit.ts)
+purpose: >
+  Finalize the Gemini integration layer that powers the chat’s backend logic.
+  Establish observability, latency tracking, and resilient output handling.
+action: >
+  Replaced src/ai/genkit.ts with a new version that:
+    - Initializes Genkit using the googleAI plugin and the model 'googleai/gemini-2.5-flash'.
+    - Adds full logging groups and timing for Genkit initialization and each model call.
+    - Logs prompt size, history length, and response length for every AI generation.
+    - Normalizes the output text structure and defends against API variations.
+    - Uses structured, non-breaking fallbacks for empty or error cases.
+status: success
+result: >
+  The AI bridge (menuFlow) is now consistent with the logging style of the API route and ChatTab.
+  It provides clear latency and text length metrics and automatically handles prompt/response normalization.
+
+27 VERIFY E2E CHAT LOOP (UI)
+purpose: Confirm end-to-end flow from user input to Gemini reply via /api/chat in the live UI.
+action: >
+  Sent "hello Gemini, smoke test" from the Chat Online tab.
+  Observed structured logs:
+    - optimistic append, Firestore write
+    - POST /api/chat with measured fetch latency
+    - AI response received and assistant reply appended
+    - assistant message persisted to Firestore
+  Terminal showed route + genkit logs as expected.
+status: success
+remember: First request included dev Fast Refresh rebuilds which inflated latency; later requests should be faster.

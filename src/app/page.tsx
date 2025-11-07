@@ -1,12 +1,26 @@
+/*
+*file-summary*
+PATH: src/app/page.tsx
+PURPOSE: Render the home page with a responsive UI: Configurator and Chat as tabs on mobile and side-by-side on desktop.
+SUMMARY: Uses local state to switch tabs on mobile; on desktop, shows the Configurator main area and a sticky Chat sidebar. Imports aligned with current export contracts (named ChatTab, default Configurator).
+IMPORTS:
+  - React: useState
+  - { ChatTab } from '@/components/chat/chat-tab'
+  - Configurator from '@/components/configurator/configurator'
+  - { ConfiguratorTab } from '@/components/configurator/configurator-tab'
+EXPORTS:
+  - default Home (React component)
+*/
+
 'use client';
 
 import { useState } from 'react';
-import ChatTab from '@/components/chat/chat-tab';
-import { Configurator } from '@/components/configurator/configurator';
+import { ChatTab } from '@/components/chat/chat-tab';
+import Configurator from '@/components/configurator/configurator';
 import { ConfiguratorTab } from '@/components/configurator/configurator-tab';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('configurator');
+  const [activeTab, setActiveTab] = useState<'configurator' | 'chat'>('configurator');
 
   return (
     <main className="flex-1 flex flex-col">

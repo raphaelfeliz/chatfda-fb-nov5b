@@ -1,12 +1,32 @@
 { pkgs, ... }: {
+  # --- Base Configuration ---
+  # Use the stable Nix channel for predictable package versions
   channel = "stable-24.05";
-  packages = [ pkgs.nodejs_20 ];
+
+  # --- Packages ---
+  # Core tools available in your development environment
+  packages = [
+    pkgs.nodejs_20
+  ];
+
+  # --- Environment Variables ---
+  # Add your Gemini API key here. It becomes available to all dev sessions.
+  env = {
+    GOOGLE_GENAI_API_KEY = "AIzaSyA5Db4-TOk24VuoUJy7JZ4MhNyVkHHndzk";
+  };
+
+  # --- IDX Workspace Configuration ---
   idx = {
+    # --- VS Code Extensions ---
+    # Installed automatically to enhance your DX
     extensions = [
       "dbaeumer.vscode-eslint"
       "bradlc.vscode-tailwindcss"
       "esbenp.prettier-vscode"
     ];
+
+    # --- Workspace Lifecycle Hooks ---
+    # Defines what happens when the environment is created or started
     workspace = {
       onCreate = {
         npm-install = "npm install";
@@ -15,6 +35,9 @@
         dev-server = "npm run dev";
       };
     };
+
+    # --- Previews ---
+    # Configure Firebase Studio’s web preview for your app
     previews = {
       enable = true;
       previews = {

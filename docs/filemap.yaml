@@ -489,3 +489,6 @@ firestore.rules:
     - Works directly with Firestore initialization in src/lib/firebase.ts, which connects the client app to the same project (gen-lang-client-0545699517).
     - Affects all Firestore interactions in src/lib/firestore.ts and src/lib/chat-storage.ts — those files assume successful read/write operations because security rules are fully permissive.
     - Once hardened, this file will govern access for both the chat subsystem (/chats/{sessionId}/messages/...) and any future configurator persistence collections.
+
+
+    

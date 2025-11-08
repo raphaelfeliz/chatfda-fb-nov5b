@@ -12,7 +12,7 @@
   # --- Environment Variables ---
   # Add your Gemini API key here. It becomes available to all dev sessions.
   env = {
-    GOOGLE_GENAI_API_KEY = "AIzaSyA5Db4-TOk24VuoUJy7JZ4MhNyVkHHndzk";
+    GEMINI_API_KEY = "AIzaSyDi4HT_YSKST57KsUGcTrt-GBdfZyNrtA0";
   };
 
   # --- IDX Workspace Configuration ---

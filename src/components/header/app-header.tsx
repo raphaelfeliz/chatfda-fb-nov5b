@@ -7,7 +7,14 @@ import { ResetButton } from './restart-button';
 import { Breadcrumb } from './breadcrumb';
 
 export function AppHeader() {
-  const { history, reset } = useConfiguratorContext();
+  // --- FIX ---
+  // 1. Destructure 'fullProductName' (a string) instead of the old 'history' array.
+  const { fullProductName, reset } = useConfiguratorContext();
+
+  // 2. Create the 'history' array by splitting the product name string.
+  //    'filter(Boolean)' removes any empty strings if 'fullProductName' is empty.
+  const historyArray = fullProductName.split(' ').filter(Boolean);
+  // --- END FIX ---
 
   return (
     // To adjust the header height, modify the classes below.
@@ -25,7 +32,8 @@ export function AppHeader() {
               className="object-contain p-2.5"
             />
           </div>
-          <ProgressTracker history={history} onReset={reset} />
+          {/* 3. Pass the new 'historyArray' to the component */}
+          <ProgressTracker history={historyArray} onReset={reset} />
         </div>
 
         {/* --- MOBILE VIEW --- */}
@@ -49,7 +57,8 @@ export function AppHeader() {
 
           {/* Bottom Row */}
           <div className="w-full h-1/2 flex items-center">
-            <Breadcrumb history={history} />
+            {/* 4. Pass the new 'historyArray' to the component */}
+            <Breadcrumb history={historyArray} />
           </div>
         </div>
       </div>

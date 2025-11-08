@@ -1,24 +1,29 @@
 /*
 *file-summary*
 PATH: src/components/chat/chat-tab.tsx
-PURPOSE: Manage the chat session lifecycle, user input, message persistence (Firestore/local), and real-time communication with the Gemini AI through `/api/chat`.
-SUMMARY: Boots a fixed session from Firestore (with IndexedDB cache), falls back once to a local session if missing, maintains a legacy localStorage mirror for resilience, appends user messages optimistically, mirrors writes to Firestore, and sends/receives AI replies via `/api/chat`. Includes structured logging for full traceability (no dependency on Network tab).
+PURPOSE: Manages the chat UI, message history, and acts as the "glue"
+         between user text input and the ConfiguratorContext.
+SUMMARY: This component is now fully integrated with the ConfiguratorContext.
+         It sends user input to the AI, receives a JSON "form" (ExtractedFacets),
+         and passes that form to the context's `applyExtractedFacets` function.
+         It also *listens* to the context's `currentQuestion` to post app-generated
+         question bubbles.
 IMPORTS:
-  - React: useState, useEffect
-  - ChatBubbleArea (default) from '@/components/chat/bubble-area/chat-bubble-area'
-  - FooterArea (default) from '@/components/chat/footer-area/footer-area'
-  - chat-storage helpers from '@/lib/chat-storage' (createSession, saveSession, loadSession, types)
-  - saveMessage (aliased) from '@/lib/firestore'
+ - React: useState, useEffect, useRef
+ - Context: useConfiguratorContext
+ - Engine/AI types: ExtractedFacets
+ - Components: ChatBubbleArea, FooterArea
+ - Firestore: chat-storage helpers, saveMessageToFirestore
 EXPORTS:
-  - ChatTab (named React functional component)
+ - ChatTab (named React functional component)
 */
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ChatBubbleArea from '@/components/chat/bubble-area/chat-bubble-area';
 import FooterArea from '@/components/chat/footer-area/footer-area';
-
+// --- FIX: Removed ResultProductCard as it's no longer rendered here ---
 import {
   createSession,
   saveSession,
@@ -27,30 +32,40 @@ import {
   type ChatMessage,
 } from '@/lib/chat-storage';
 import { saveMessage as saveMessageToFirestore } from '@/lib/firestore';
+import { useConfiguratorContext } from '@/context/ConfiguratorContext';
+import { type ExtractedFacets } from '@/ai/genkit';
+// --- FIX: Removed Product import as it's no longer needed ---
 
 /* --sectionComment
 SECTION: COMPONENT (ChatTab)
-SUMMARY: Orchestrates bootstrap, persistence mirror, AI message sending, and rendering.
 */
 export function ChatTab() {
   /* --sectionComment
   SECTION: CONSTANTS
-  SUMMARY: Defines the static session id and log scope prefix.
   */
   const sessionId = 'default-chat-session';
   const LOG_SCOPE = '[ChatTab → AI]';
 
   /* --sectionComment
   SECTION: STATE
-  SUMMARY: Holds the active session object, message list, and a bootstrap readiness flag.
   */
   const [session, setSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [bootReady, setBootReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // --- Get state and functions from our "Smarter Brain" Context ---
+  const {
+    currentQuestion,
+    finalProducts, // <-- We still listen for this to stop posting questions
+    applyExtractedFacets,
+  } = useConfiguratorContext();
+
+  // Ref to prevent duplicate question-posting
+  const lastPostedQuestionRef = useRef<string | null>(null);
 
   /* --sectionComment
-  SECTION: BOOTSTRAP (Firestore-first with local fallback)
-  SUMMARY: Load session from Firestore (cached via IndexedDB). If missing, create and persist a new local session.
+  SECTION: BOOTSTRAP (Firestore-first)
   */
   useEffect(() => {
     console.group('[ChatTab] mount bootstrap');
@@ -62,12 +77,14 @@ export function ChatTab() {
           setSession(loaded);
           setMessages(loaded.messages ?? []);
           console.log(
-            `[ChatTab] loaded ${loaded.messages?.length ?? 0} messages from Firestore/local cache`
+            `[ChatTab] loaded ${
+              loaded.messages?.length ?? 0
+            } messages from Firestore/local cache`
           );
         } else {
           const created = createSession();
           created.sessionId = sessionId;
-          saveSession(created);
+          saveSession(created); // Save legacy local
           setSession(created);
           setMessages([]);
           console.log('[ChatTab] created new session (empty)');
@@ -83,7 +100,6 @@ export function ChatTab() {
 
   /* --sectionComment
   SECTION: LOCAL MIRROR (Deprecated)
-  SUMMARY: Maintain a legacy localStorage mirror for resilience; avoid state feedback loops.
   */
   useEffect(() => {
     if (!session) return;
@@ -100,19 +116,59 @@ export function ChatTab() {
   }, [messages, session]);
 
   /* --sectionComment
-  SECTION: SEND HANDLER (optimistic + Firestore mirror + AI request)
-  SUMMARY: Append user message locally, persist to Firestore, send to `/api/chat`, and append AI reply.
+  SECTION: NEW: Listen to ConfiguratorContext
+  */
+  useEffect(() => {
+    // Do not post any new questions if the flow is finished
+    if (!bootReady || !currentQuestion || finalProducts) {
+      return;
+    }
+
+    const newQuestionText = currentQuestion.question;
+    const lastMessage = messages[messages.length - 1];
+
+    if (
+      newQuestionText &&
+      newQuestionText !== lastPostedQuestionRef.current &&
+      newQuestionText !== lastMessage?.text
+    ) {
+      console.log(
+        `[ChatTab] Context changed. Posting new question: ${newQuestionText}`
+      );
+      const ts = Date.now();
+      const appBubble: ChatMessage = {
+        id: String(ts),
+        sender: 'assistant',
+        text: newQuestionText,
+        timestamp: ts,
+        variant: 'incoming',
+      };
+      setMessages((prev) => [...prev, appBubble]);
+      lastPostedQuestionRef.current = newQuestionText; // Mark as posted
+
+      // Save the app's question to Firestore
+      saveMessageToFirestore(sessionId, 'bot', newQuestionText, {
+        timestamp: ts,
+      });
+    }
+    // Listen for changes to finalProducts to stop posting questions
+  }, [currentQuestion, finalProducts, messages, bootReady, sessionId]);
+
+  /* --sectionComment
+  SECTION: SEND HANDLER (Refactored for "Form-Filling" AI)
   */
   const handleSendMessage = async (text: string) => {
     console.group('[ChatTab] handleSendMessage');
     console.time(`${LOG_SCOPE} total`);
+    setIsLoading(true);
     try {
       const trimmed = text?.trim();
       if (!trimmed) {
         console.warn(`${LOG_SCOPE} ignored empty message`);
         return;
       }
-      if (!bootReady) console.warn(`${LOG_SCOPE} send attempted before bootstrap complete`);
+      if (!bootReady)
+        console.warn(`${LOG_SCOPE} send attempted before bootstrap complete`);
 
       const ts = Date.now();
       const optimistic: ChatMessage = {
@@ -126,7 +182,10 @@ export function ChatTab() {
       // 1) Optimistic UI append
       setMessages((prev) => {
         const next = [...prev, optimistic];
-        console.log(`${LOG_SCOPE} optimistic append → next.length =`, next.length);
+        console.log(
+          `${LOG_SCOPE} optimistic append → next.length =`,
+          next.length
+        );
         return next;
       });
 
@@ -143,38 +202,19 @@ export function ChatTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ variant: 'outgoing', text: trimmed, timestamp: ts, sender: 'user', id: String(ts) }],
+          userInput: trimmed,
         }),
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+
+      // 4) Receive AI "Form"
+      const aiJson: ExtractedFacets = await response.json();
       console.timeEnd(`${LOG_SCOPE} fetch latency`);
-      console.log(`${LOG_SCOPE} ← AI response:`, data);
+      console.log(`${LOG_SCOPE} ← AI response (JSON Form):`, aiJson);
 
-      // 4) Append assistant reply
-      const aiText = data?.text ?? '(no response)';
-      const reply: ChatMessage = {
-        id: `${ts}-assistant`,
-        sender: 'assistant',
-        text: aiText,
-        timestamp: Date.now(),
-        variant: 'incoming',
-      };
-      setMessages((prev) => {
-        const next = [...prev, reply];
-        console.log(`${LOG_SCOPE} ✓ appended assistant reply → next.length =`, next.length);
-        return next;
-      });
-
-      // 5) Optional: save assistant message to Firestore
-      try {
-        console.time(`${LOG_SCOPE} Firestore save (assistant)`);
-        await saveMessageToFirestore(sessionId, 'assistant', aiText, { timestamp: Date.now() });
-        console.timeEnd(`${LOG_SCOPE} Firestore save (assistant)`);
-      } catch (fireErr) {
-        console.warn(`${LOG_SCOPE} assistant save skipped:`, fireErr);
-      }
+      // 5) Apply AI Form to Context
+      applyExtractedFacets(aiJson);
 
       console.log(`${LOG_SCOPE} completed successfully`);
     } catch (err) {
@@ -188,6 +228,7 @@ export function ChatTab() {
       };
       setMessages((prev) => [...prev, fallback]);
     } finally {
+      setIsLoading(false);
       console.timeEnd(`${LOG_SCOPE} total`);
       console.groupEnd();
       console.groupEnd();
@@ -196,12 +237,12 @@ export function ChatTab() {
 
   /* --sectionComment
   SECTION: RENDER
-  SUMMARY: Preserve dark theme container and fixed height; delegate list/input to presentational components.
   */
   return (
     <div className="bg-[#0d1a26] flex flex-col h-[80vh] text-white">
       <ChatBubbleArea messages={messages ?? []} />
-      <FooterArea onSendMessage={handleSendMessage} />
+      {/* --- FIX: Removed the ResultProductCard section as requested --- */}
+      <FooterArea onSendMessage={handleSendMessage} isLoading={isLoading} />
     </div>
   );
 }

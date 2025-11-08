@@ -20,7 +20,7 @@ HOW: Include metadata for version tracking and device context.
 */
 export type ChatMessage = {
   id: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'assistant';
   text: string;
   timestamp: number;
   variant: 'incoming' | 'outgoing';

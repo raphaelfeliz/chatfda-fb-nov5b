@@ -1,0 +1,64 @@
+# ---
+# Project Specifications: nextn (AI Configurator)
+# ---
+# This file documents the technical environment, stack, and core
+# configurations for the project as of v1.0.0-ai-facets.
+# ---
+
+project:
+  name: nextn
+  description: A Next.js 15 app featuring an AI-driven, facet-based product configurator and an offline-first chat.
+  firebase_project_id: gen-lang-client-0545699517
+  firebase_web_app_id: 1:253278659379:web:ab51004201ffa98fb5d446
+
+repository:
+  type: git
+  url: https://github.com/raphaelfeliz/chatfda-fb-nov5b.git
+  git_version: "" # This value is local to your machine
+  latest_tag: v1.0.0-ai-facets
+
+environment:
+  type: Google Cloud Workstation (Detected)
+  config_file: .vscode/dev.nix
+  notes: |
+    The .vscode/dev.nix file provisions the development environment
+    and sets high-priority environment variables.
+  secrets_management:
+    GOOGLE_GENAI_API_KEY: "Set in .vscode/dev.nix (overrides .env.local)"
+
+stack:
+  runtime:
+    name: Node.js
+    version: ">=18.x (LTS recommended)"
+    package_manager: npm
+  
+  framework:
+    name: Next.js
+    version: "15.x" # Based on package.json
+    config_file: next.config.ts
+    
+  ui:
+    name: Tailwind CSS
+    version: "3.4.1" # Based on package.json
+    config_file: tailwind.config.ts
+    globals_file: src/app/globals.css
+  
+  database:
+    name: Firebase Firestore
+    sdk_version: "11.x" # Based on package.json
+    persistence: IndexedDB (Offline-first)
+    rules_file: firestore.rules
+    
+  ai:
+    name: Genkit
+    model: Google Gemini 2.5-flash
+    schema_validation: Zod
+    api_route: src/app/api/chat/route.ts
+    core_logic: src/ai/genkit.ts
+    knowledge_base_file: src/ai/ai_kb.yaml
+
+  configurator:
+    name: Smarter Brain (Facet Engine)
+    core_logic: src/lib/configuratorEngine.ts
+    database: src/lib/productDatabase.ts
+    state_management: src/context/ConfiguratorContext.tsx

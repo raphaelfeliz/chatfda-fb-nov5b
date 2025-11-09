@@ -1,0 +1,214 @@
+# 1. INTRODUCTION
+## 1.1 Project Purpose
+## 1.2 The Two Pillars: Configurator & Chat
+## 1.3 Core Architectural Approach (The "Smarter Brain")
+
+# 2. PILLAR 1: THE DETERMINISTIC CONFIGURATOR
+## 2.1 The "Click" Flow (User Experience)
+## 2.2 The "Smarter Brain" (The Logic Engine)
+## 2.3 The State Manager (The React Context)
+## 2.4 The Auto-Skip Rules (0, 1, 1)
+
+# 3. PILLAR 2: THE AI CHAT FLOW
+## 3.1 The "Co-Pilot" Flow (User Experience)
+## 3.2 The "Dual-Task" AI (The Logic Engine)
+## 3.3 The "Answer-then-Question" Sequence
+## 3.4 Chat Persistence (Firestore & Offline)
+
+# 4. SYSTEM-WIDE ARCHITECTURE & STACK
+## 4.1 Core Technologies
+## 4.2 Key File Structure
+## 4.3 Deployment & Environment
+
+
+
+# 1. INTRODUCTION
+
+## 1.1 Project Purpose
+
+The primary purpose of this project is to create an intelligent, seamless product configurator for a complex catalog of windows and doors. The system is designed to solve the core challenge of product discovery: users often know *what* they want (e.g., "a 2-leaf sliding window with a screen") but do not know the technical SKUs or the specific, deterministic path required to find it. This application bridges that gap by providing two distinct user interfaces—a visual, guided configurator and a natural language AI chat—that both work in harmony to lead the user to the correct, purchasable product.
+
+## 1.2 The Two Pillars: Configurator & Chat
+
+The application's functionality is delivered through two distinct pillars that are fully synchronized. Both pillars act as "front-ends" to a single, shared "brain."
+
+* **Pillar 1: The Deterministic Configurator**
+    This is the visual, step-by-step guided flow for the user. It is the application's foundational logic, ensuring a user can *always* find a product by manually clicking through a series of questions (e.g., "What category?", "What system?"). This flow is error-proof, reliable, and driven by high-quality product images, making it ideal for users who are browsing or are unsure of their exact needs.
+
+* **Pillar 2: The AI Chat Co-Pilot**
+    This is the "power-user" path that uses natural language. The chat interface is a dual-task AI co-pilot, powered by Google's Gemini model and Genkit. It has two jobs:
+    1.  **Facet Extraction:** To parse a user's free-text (e.g., "I need a 2-leaf sliding window") and translate it into a structured JSON "form" of product attributes.
+    2.  **Q&A:** To answer factual, non-product-related questions (e.g., "What is the warranty?") by consulting a grounded, static Knowledge Base (`ai_kb.yaml`).
+
+## 1.3 Core Architectural Approach (The "Smarter Brain")
+
+The project's central innovation is its "Smarter Brain" architecture, which solves the problem of synchronizing the two pillars. Instead of a rigid, hard-coded `TriageMachine`, the entire application is built on a flexible, facet-based filtering engine.
+
+* **The "Master List" (Single Source of Truth):** A single React Context (`ConfiguratorContext`) holds a "Master List" of filter values called `selectedOptions` (e.g., `{ categoria: "janela", sistema: null, ... }`). This is the single source of truth for the user's entire selection.
+
+* **Dumb Triggers, Smart Engine:** Both the UI clicks and the AI chat act as "dumb triggers." Their *only* job is to update this "Master List."
+    * A manual click calls `setAttribute('categoria', 'janela')`.
+    * The AI chat calls `applyExtractedFacets({ categoria: 'janela', sistema: 'janela-correr' })`.
+
+* **The "Smarter Brain" Function:** Every time the "Master List" is updated (from *any* source), it triggers a *single*, powerful function in the `configuratorEngine.ts` file: **`calculateNextUiState`**.
+
+* **The Logic Loop:** This "Smarter Brain" function runs a full logic loop every time it's called. It filters the entire `PRODUCT_CATALOG` against the "Master List," finds the next empty question, and intelligently applies auto-skip rules. This architecture ensures that whether a user clicks 3 times or types one sentence, the "Smarter Brain" runs the exact same logic, resulting in a UI that is *always* perfectly in sync.
+
+
+# 2. PILLAR 1: THE DETERMINISTIC CONFIGURATOR
+
+This pillar is the foundational, click-driven experience. It is a complete, self-contained system that allows a user to find a product by manually answering a series of questions. The logic is self-healing, skipping questions that are irrelevant or have only one answer, ensuring the user is never asked an unnecessary question.
+
+## 2.1 The "Click" Flow (User Experience)
+
+From the user's perspective, the "click" flow is a simple, fast, and intelligent "wizard."
+
+* **Step 1:** The user is presented with the first question: "O que você busca?" ("What are you looking for?"), with options like "Janela" (Window) and "Porta" (Door).
+* **Step 2:** The user clicks **"Janela"**. The app instantly updates to show the next logical question: "Qual o sistema de abertura?" ("Which opening system?").
+* **Step 3 (The "Magic"):** The user then clicks **"Maxim-ar"**. Instead of showing the next question (like "Do you want a screen?"), the app **instantly skips all remaining steps** and displays the **Final Product Card** for the "Janela Maxim-ar" product.
+
+This "magic" is the result of the "Smarter Brain" logic. The user is only ever shown questions that are necessary to find a product. If a choice (like "Maxim-ar") leads to only one possible result, the system auto-completes the rest of the flow instantly.
+
+## 2.2 The "Smarter Brain" (The Logic Engine)
+
+The "Smarter Brain" is the file **`src/lib/configuratorEngine.ts`**. It is a pure, testable JavaScript/TypeScript file that contains *all* the business logic for the entire configurator. It has no React code and no state.
+
+* **Core Function:** It exports one primary function: **`calculateNextUiState(selectedOptions)`**.
+* **Input:** This function takes *one* argument: the user's current "Master List" of selections (e.g., `{ categoria: "janela", sistema: "maxim-ar", ... }`).
+* **Process:** When called, it runs a complete "thinking loop" from start to finish based on that input.
+    1.  It first filters the entire `PRODUCT_CATALOG` against the user's selections.
+    2.  It then checks the **Auto-Skip Rules** (see 2.4).
+    3.  If no rules are met, it finds the next empty question in the `FACET_ORDER` (the hard-coded question order).
+* **Output:** This function returns a *single object* that describes the *final* state of the UI:
+    * **Either:** `{ currentQuestion: {...} }` (if it needs the user's input for the next step).
+    * **Or:** `{ finalProducts: [...] }` (if the flow is complete).
+
+
+
+## 2.3 The State Manager (The React Context)
+
+The "State Manager" is the file **`src/context/ConfiguratorContext.tsx`**. This is the "heart" of the React application, connecting the "Smarter Brain" (the logic) to the UI (the components).
+
+* **Core State:** Its single source of truth is the **`selectedOptions`** state variable (the "Master List" object).
+* **Public "Triggers":** It exposes functions that the UI (or AI) can call:
+    * **`setAttribute(attribute, value)`:** Called by the `OptionCard` component when a user clicks a button (e.g., `setAttribute('categoria', 'janela')`).
+    * **`applyExtractedFacets(facets)`:** Called by the `ChatTab` when the AI returns its JSON "form."
+    * **`reset()`:** Called by the `ResetButton`.
+* **The "Glue" Logic:** When any "trigger" function is called, the Context performs two simple actions:
+    1.  It updates the **`selectedOptions`** "Master List" state (e.g., setting `categoria` to `"janela"`).
+    2.  This state update triggers a `useEffect`, which then calls the "Smarter Brain" function—`calculateNextUiState(selectedOptions)`—to get the new UI state.
+    3.  It saves the result from the "Smarter Brain" into its *other* state variables (`currentQuestion` and `finalProducts`), which causes the entire UI to re-render with the next step.
+
+## 2.4 The Auto-Skip Rules (0, 1, 1)
+
+These three rules are the "intelligence" inside the "Smarter Brain" (`calculateNextUiState`). They run in a loop to ensure the user *never* has to answer an unnecessary question.
+
+* **Rule 1: The "1 Product" Rule**
+    * **Trigger:** After any selection, the list of matching products is filtered. If this list contains **only one** product, this rule fires.
+    * **Action:** The engine immediately stops the logic loop, ignoring all other questions. It returns this single product as the `finalProducts`.
+    * **Result:** The user sees the `ResultProductCard` instantly.
+
+* **Rule 2: The "0 Options" Rule**
+    * **Trigger:** The engine finds the next empty question (e.g., `persianaMotorizada`) but, after filtering, it sees there are **zero** valid options for it (e.g., all remaining products have `persianaMotorizada: null`).
+    * **Action:** The engine silently **skips** this attribute (leaves it `null`) and continues its "thinking loop" to the *next* attribute in the list (e.g., `material`).
+    * **Result:** The user is never shown a question that has no valid answers.
+
+* **Rule 3: The "1 Option" Rule**
+    * **Trigger:** The engine finds the next empty question (e.g., `material`) and sees there is only **one** possible valid option (e.g., `"vidro"`).
+    * **Action:** The engine **auto-selects** that single option (`material: "vidro"`) for the user and *re-runs its own logic loop* from the top.
+    * **Result:** The user is not bothered with a question that only has one answer. This can chain with other rules, allowing the app to auto-complete multiple steps at once.
+
+
+Here is the detailed expansion of Pillar 2, The AI Chat Flow.
+
+# 3. PILLAR 2: THE AI CHAT FLOW
+
+This pillar is the "co-pilot" for the configurator. It provides a natural language interface that translates user intent directly into actions within the deterministic "Smarter Brain." It is designed to be an *accelerator*, not a conversationalist, by intelligently handling both product extraction and factual Q&A simultaneously.
+
+## 3.1 The "Co-Pilot" Flow (User Experience)
+
+From the user's perspective, the chat is a powerful and intelligent assistant that is perfectly synchronized with the rest of the application.
+
+* **Multi-Step Extraction:** A user can type a complex sentence like, "Eu preciso de uma janela de correr com persiana" ("I need a sliding window with a screen"). The chat understands this, and instead of just saying "Okay," it instantly processes *three* steps of the configurator at once. The UI then responds by asking the *fourth* logical question ("A persiana deve ser motorizada ou manual?"), making the user feel like a "pro" for skipping ahead.
+* **Dual-Task (Q&A + Extraction):** A user can ask a question and specify a product at the same time (e.g., "Qual a garantia da janela?"). The chat will first respond with the factual answer ("A garantia dos nossos produtos é de 30 dias.") and *then*, in a separate bubble, ask the next logical configurator question ("Qual o sistema de abertura?").
+* **Full Synchronization:** If a user uses the chat to select "Janela," and then clicks over to the "Configurator" tab, they will see that "Janela" is already selected and the app is waiting on the second question. The two pillars are always in sync because they are both powered by the same "Smarter Brain."
+
+## 3.2 The "Dual-Task" AI (The Logic Engine)
+
+The AI's "brain" is the **`src/ai/genkit.ts`** file. Its logic is *not* to have a conversation, but to act as a strict "form-filler." Its one and only job is to take the user's text and return a structured JSON "form" (`ExtractedFacets`) with seven keys. This JSON is the sole output of the AI.
+
+
+
+This process is governed by a `systemInstruction` (a prompt) that commands the AI to perform two tasks in parallel:
+
+* **Task 1 (Facet Extraction):** The AI scans the user's text for keywords (e.g., "janela de correr," "manual") that match a hard-coded list of "valid options." It then populates the product-related keys in the JSON (e.g., `categoria: "janela"`, `sistema: "janela-correr"`). If no match is found for a key, it returns `null`.
+* **Task 2 (Knowledge Base Q&A):** The AI scans the user's text for factual questions (e.g., "Qual a garantia?"). If a question is found, it is *only* allowed to find the answer by searching the content of the **`ai_kb.yaml`** file, which is injected into its prompt. This "grounding" prevents the AI from "hallucinating" or making up answers. It places the (Portuguese) answer into the `knowledgeBaseAnswer` field of the JSON.
+
+## 3.3 The "Answer-then-Question" Sequence
+
+This is the critical client-side logic in **`src/components/chat/chat-tab.tsx`** that creates the seamless user experience. When the `handleSendMessage` function receives the JSON "form" from the AI, it performs two actions sequentially:
+
+1.  **First (The Answer):** It *immediately* inspects the `knowledgeBaseAnswer` field. If this field contains text (is not `null`), the component creates a new "assistant" chat bubble and displays the answer to the user. This is the first thing the user sees.
+2.  **Second (The Facets):** *After* posting the answer, the function then calls **`applyExtractedFacets(aiJson)`**, passing the *entire* JSON "form" to the `ConfiguratorContext`. This single call triggers the "Smarter Brain," which runs its full auto-skip logic based on the extracted facets. When the "Smarter Brain" finds the next logical question, the `ChatTab` (which is listening for context changes) posts a *second* "assistant" bubble with the new configurator question.
+
+This two-step process (post-answer, *then* process-facets) is what creates the natural, sequential "Answer-then-Question" flow.
+
+## 3.4 Chat Persistence (Firestore & Offline)
+
+The chat is built to be robust and reliable. All conversation history is stored in **Firebase Firestore** and not just locally in the browser.
+
+* **Offline First:** The Firebase SDK is configured to use **IndexedDB persistence**. This means the chat history is cached locally on the user's device. The app loads instantly from this cache, and any messages a user sends while offline are automatically placed in a queue. When the user's connection is restored, the SDK syncs the messages to the server automatically.
+* **Complete Log:** The system ensures a complete and accurate log of the interaction by performing **three distinct writes to Firestore** for a dual-task query:
+    1.  The user's original message (e.g., "Qual a garantia da janela?").
+    2.  The AI's factual answer (e.g., "A garantia é de 5 anos.").
+    3.  The app's *new* configurator question (e.g., "Qual o sistema de abertura?").
+
+
+Here is the detailed expansion of Section 4, "System-Wide Architecture & Stack."
+
+# 4. SYSTEM-WIDE ARCHITECTURE & STACK
+
+This application is a modern Next.js 15 project designed with a clear separation of concerns. It features a reactive frontend built with React 18, a flexible logic layer (the "Smarter Brain"), and a powerful AI co-pilot. All systems are written in TypeScript for end-to-end type safety.
+
+## 4.1 Core Technologies
+
+The project's stack is built on a foundation of modern, high-performance tools selected to handle their specific tasks efficiently.
+
+* **Frontend & Framework:** **Next.js 15 (App Router)** and **React 18** serve as the core. All components are client-side (`'use client'`) to manage the highly interactive and stateful nature of the configurator.
+* **AI Engine (Backend):** **Google Genkit** is used to orchestrate AI-powered logic. It calls the **Google Gemini 2.5-flash** model via a `nodejs` API route to perform dual-task (facet extraction and Q&A) functions.
+* **Database & Persistence:** **Firebase Firestore (Web SDK)** is the primary database for chat history. It is configured with **IndexedDB persistence** for a robust "offline-first" capability, allowing the app to load instantly and queue messages sent while offline.
+* **Styling & UI:** **Tailwind CSS** is used for all styling, configured with a `globals.css` file that defines dark-mode HSL color tokens. UI components are built using `lucide-react` for icons.
+* **Schema & Utilities:** **Zod** is used within the AI layer (`genkit.ts`) to define and enforce the strict JSON "form" that the Gemini model must return, ensuring reliable data from the AI.
+
+## 4.2 Key File Structure
+
+The project's architecture is defined by a clear separation between its four primary layers: the UI, the State Manager, the Logic Engine, and the AI.
+
+
+
+* **AI "Form-Filler" (`src/ai/`):**
+    * **`genkit.ts`:** The AI "brain." Defines the `ExtractedFacets` JSON schema (with 7 keys) and exports the `extractAttributesFromText` function, which contains the "dual-task" prompt.
+    * **`ai_kb.yaml`:** The static, Portuguese Knowledge Base file used by the AI to provide grounded Q&A answers.
+    * **`api/chat/route.ts`:** The API "mailman." It receives `userInput` from the chat, calls `extractAttributesFromText`, and returns the complete JSON "form" to the client.
+
+* **"Smarter Brain" (Logic Engine - `src/lib/`):**
+    * **`productDatabase.ts`:** The *data* file. It exports the `PRODUCT_CATALOG` (the array of 27 real products, using `slug` for URLs) and the `BASE_PRODUCT_URL`.
+    * **`configuratorEngine.ts`:** The *logic* file. It imports the `PRODUCT_CATALOG` and exports `FACET_ORDER`, `FACET_DEFINITIONS`, and the main "Smarter Brain" function: **`calculateNextUiState`**. This function contains all the auto-skip (0, 1, 1) and filtering logic.
+
+* **State & UI (React Components - `src/`):**
+    * **`context/ConfiguratorContext.tsx`:** The "State Manager." It holds the `selectedOptions` "Master List" and exposes the `setAttribute` and `applyExtractedFacets` functions to update that list. It calls `calculateNextUiState` to get the next UI state.
+    * **`components/chat/chat-tab.tsx`:** The "AI Trigger." It sends the AI request and calls `applyExtractedFacets` upon receiving the JSON response. It also *listens* to the context's `currentQuestion` to post new bot messages.
+    * **`components/configurator/configurator.tsx`:** The "Click UI." It renders `OptionCard`s and calls `setAttribute` on click. It also correctly maps the `Product` object (with `image` and `slug`) to the `ResultProductCard`'s props.
+    * **`components/configurator/result-product-card.tsx`:** The final product card, which now safely handles missing images and opens the "Ver Preço" link in a new tab.
+
+* **Chat Persistence (Data - `src/lib/`):**
+    * **`firebase.ts`:** Initializes the Firebase app and enables IndexedDB persistence.
+    * **`firestore.ts`:** Contains the `saveMessage` and `loadSession` functions that `chat-tab.tsx` uses to manage chat history.
+
+## 4.3 Deployment & Environment
+
+The application is configured to run in a modern, serverful cloud environment, with specific attention paid to environment variables.
+
+* **Runtime:** The project requires a **Node.js runtime** on the server. This is explicitly set in `api/chat/route.ts` and is a requirement for the Genkit/Gemini AI library to function.
+* **Environment Variables:** The system relies on a **`GOOGLE_GENAI_API_KEY`** environment variable. A key discovery during development was that in this project's cloud workstation, this variable is set in the **`.vscode/dev.nix`** file. This file *overrides* any keys set in `.env.local`, making `dev.nix` the single source of truth for secrets in this specific development environment.
+* **Database Rules:** The `firestore.rules` file is currently configured for development, allowing all reads and writes (`allow read, write: if true;`). This is insecure and must be hardened with proper authentication rules before moving to production.

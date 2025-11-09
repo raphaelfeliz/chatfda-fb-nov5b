@@ -6,6 +6,8 @@ PURPOSE: Manages the chat UI, message history, and acts as the "glue"
 SUMMARY: This component is now fully integrated with the ConfiguratorContext.
          It sends user input to the AI, receives a JSON "form" (ExtractedFacets),
          and passes that form to the context's `applyExtractedFacets` function.
+         **NEW**: It now also reads the 'knowledgeBaseAnswer' from the JSON
+         and posts the answer as a chat bubble before processing the facets.
          It also *listens* to the context's `currentQuestion` to post app-generated
          question bubbles.
 IMPORTS:
@@ -213,7 +215,36 @@ export function ChatTab() {
       console.timeEnd(`${LOG_SCOPE} fetch latency`);
       console.log(`${LOG_SCOPE} ← AI response (JSON Form):`, aiJson);
 
-      // 5) Apply AI Form to Context
+      // --- MODIFICATION START (Checkpoint 2) ---
+      // 5) Post the KB Answer (if one exists)
+      const kbAnswer = aiJson.knowledgeBaseAnswer;
+      if (kbAnswer && kbAnswer.trim() !== '' && kbAnswer.trim() !== 'null') {
+        console.log(`${LOG_SCOPE} Posting KB answer bubble.`);
+        const answerTs = Date.now();
+        const answerBubble: ChatMessage = {
+          id: String(answerTs),
+          sender: 'assistant',
+          text: kbAnswer,
+          timestamp: answerTs,
+          variant: 'incoming',
+        };
+
+        // Post the answer bubble to the UI
+        setMessages((prev) => [...prev, answerBubble]);
+
+        // Save the answer bubble to Firestore
+        try {
+          await saveMessageToFirestore(sessionId, 'bot', kbAnswer, {
+            timestamp: answerTs,
+          });
+          console.log(`${LOG_SCOPE} Saved KB answer to Firestore.`);
+        } catch (fireErr) {
+          console.warn(`${LOG_SCOPE} KB answer save skipped:`, fireErr);
+        }
+      }
+      // --- MODIFICATION END ---
+
+      // 6) Apply AI Form to Context (This triggers the configurator logic)
       applyExtractedFacets(aiJson);
 
       console.log(`${LOG_SCOPE} completed successfully`);

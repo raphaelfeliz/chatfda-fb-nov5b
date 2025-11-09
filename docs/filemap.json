@@ -1,0 +1,139 @@
+{
+  "file_map": [
+    {
+      "path": "src/ai/genkit.ts",
+      "tags": ["ai-flow", "logic", "config", "new-file"],
+      "summary": "The AI \"form-filler\" brain. Defines the JSON schema (with Q&A) and exports the extractAttributesFromText function."
+    },
+    {
+      "path": "src/ai/ai_kb.yaml",
+      "tags": ["ai-flow", "config", "new-file"],
+      "summary": "The static Knowledge Base file (in Portuguese) that the AI uses to answer factual questions."
+    },
+    {
+      "path": "src/app/api/chat/route.ts",
+      "tags": ["ai-flow", "server", "api", "refactored"],
+      "summary": "The API \"mailman.\" Receives 'userInput' from the client, calls the AI brain, and returns the complete JSON \"form\"."
+    },
+    {
+      "path": "src/lib/triage.ts",
+      "tags": ["deleted", "legacy", "configurator-flow"],
+      "summary": "DELETED. This rigid state machine was replaced by the 'configuratorEngine.ts' and 'productDatabase.ts' files."
+    },
+    {
+      "path": "src/lib/productDatabase.ts",
+      "tags": ["configurator-flow", "database", "logic", "new-file"],
+      "summary": "The new product database. Exports the full PRODUCT_CATALOG (27 items) with real product slugs and image URLs."
+    },
+    {
+      "path": "src/lib/configuratorEngine.ts",
+      "tags": ["configurator-flow", "logic", "new-file"],
+      "summary": "The new \"Smarter Brain.\" Exports calculateNextUiState, which runs all filtering and auto-skip logic (Rules 0, 1, 1)."
+    },
+    {
+      "path": "src/context/ConfiguratorContext.tsx",
+      "tags": ["configurator-flow", "state-management", "react", "refactored"],
+      "summary": "The React \"State Manager.\" Holds the 'selectedOptions' Master List and connects the UI/AI to the Smarter Brain."
+    },
+    {
+      "path": "src/components/chat/chat-tab.tsx",
+      "tags": ["chat-flow", "ai-flow", "configurator-flow", "interactive", "react", "refactored"],
+      "summary": "The core Chat UI. Posts new questions, sends user input to the AI, and calls 'applyExtractedFacets' with the JSON response."
+    },
+    {
+      "path": "src/components/configurator/configurator.tsx",
+      "tags": ["configurator-flow", "interactive", "react", "refactored"],
+      "summary": "Renders the \"click\" UI. Calls 'setAttribute' on click and correctly maps product data (image/slug) to the ResultProductCard."
+    },
+    {
+      "path": "src/components/configurator/option-card.tsx",
+      "tags": ["configurator-flow", "interactive", "react", "refactored"],
+      "summary": "Renders a single clickable choice button (e.g., \"Janela\")."
+    },
+    {
+      "path": "src/components/configurator/result-product-card.tsx",
+      "tags": ["configurator-flow", "interactive", "react", "refactored"],
+      "summary": "Renders the final product card. Safely handles missing images and opens the \"Ver Preço\" link in a new tab."
+    },
+    {
+      "path": "src/components/header/app-header.tsx",
+      "tags": ["ui", "react", "refactored"],
+      "summary": "The main app header. Reads 'fullProductName' from the context and splits it into an array for the Breadcrumb."
+    },
+    {
+      "path": "src/components/header/breadcrumb.tsx",
+      "tags": ["ui", "react"],
+      "summary": "A \"dumb\" component that renders the 'history' array it is given."
+    },
+    {
+      "path": "src/components/header/progress-tracker.tsx",
+      "tags": ["ui", "react"],
+      "summary": "A \"dumb\" component that wraps the Breadcrumb and ResetButton."
+    },
+    {
+      "path": "src/components/chat/footer-area/footer-area.tsx",
+      "tags": ["chat-flow", "interactive", "react", "refactored"],
+      "summary": "The chat input bar. Now accepts an 'isLoading' prop to disable controls while the AI is thinking."
+    },
+    {
+      "path": "src/components/chat/bubble-area/chat-bubble-area.tsx",
+      "tags": ["chat-flow", "ui", "react"],
+      "summary": "Renders the scrollable list of chat bubbles."
+    },
+    {
+      "path": "src/components/chat/bubble-area/chat-bubble.tsx",
+      "tags": ["chat-flow", "ui", "react"],
+      "summary": "Renders a single 'incoming' or 'outgoing' chat bubble."
+    },
+    {
+      "path": "src/lib/firebase.ts",
+      "tags": ["chat-flow", "persistence", "config"],
+      "summary": "Initializes the Firebase app and enables IndexedDB offline persistence for Firestore."
+    },
+    {
+      "path": "src/lib/firestore.ts",
+      "tags": ["chat-flow", "persistence", "logic"],
+      "summary": "Provides the 'saveMessage' and 'loadSession' functions for the Firestore chat history."
+    },
+    {
+      "path": "src/lib/chat-storage.ts",
+      "tags": ["chat-flow", "persistence", "legacy"],
+      "summary": "Legacy loader for migrating old 'localStorage' chat sessions to Firestore."
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "tags": ["ui", "utility"],
+      "summary": "Provides the 'cn()' utility for merging Tailwind classes."
+    },
+    {
+      "path": "src/app/globals.css",
+      "tags": ["ui", "config"],
+      "summary": "Defines global styling and dark mode CSS variables for Tailwind."
+    },
+    {
+      "path": "next.config.ts",
+      "tags": ["config"],
+      "summary": "Next.js config. Allowlists 'storage.googleapis.com' for product images."
+    },
+    {
+      "path": "next.config.mjs",
+      "tags": ["config", "deployment"],
+      "summary": "Alternative Next.js config for static ('output: export') builds."
+    },
+    {
+      "path": "package.json",
+      "tags": ["config", "refactored"],
+      "summary": "Project dependencies. Added 'zod' to support the new AI schema validation."
+    },
+    {
+      "path": "tailwind.config.ts",
+      "tags": ["ui", "config"],
+      "summary": "Configures Tailwind CSS with theme tokens (colors, fonts, animations)."
+    },
+    {
+      "path": "firestore.rules",
+      "tags": ["persistence", "config", "security"],
+      "summary": "Firestore security rules. Currently in open-access dev mode ('allow read, write: if true;')."
+    }
+  ]
+}

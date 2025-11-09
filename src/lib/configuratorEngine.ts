@@ -10,14 +10,17 @@ EXPORTS:
  - FACET_ORDER: The deterministic order of questions.
  - FACET_DEFINITIONS: The map of question titles/labels (in Portuguese).
  - calculateNextUiState: The core logic function.
- - QuestionState, Option, FacetAttribute: Core types.
+ - QuestionState, Option, FacetAttribute, Product: Core types. (FIXED)
 */
 
 // --- Import Data and Types from the new Database file ---
 import {
-    type Product,
+    type Product as ProductType, // Import the type
     PRODUCT_CATALOG
 } from './productDatabase';
+
+// --- FIX: Re-export the Product type so the Context can use it ---
+export type Product = ProductType;
 
 // --- Core Types for Data Consistency ---
 
